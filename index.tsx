@@ -283,7 +283,58 @@ function App() {
     }
   }
 
-  async function deploy() {
+  // 从文件选择一个 .js / .mjs，读出来直接部署到当前选好的 Worker。
+  // 需要先检测并选好 Worker（点一个已检测到的 Worker 即可）。
+  async function pickFileAndDeploy() {
+    if (!token.trim()) {
+      await Dialog.alert({ title: "缺少令牌", message: "请先输入并保存 API Token。" })
+      return
+    }
+    if (!accountId) {
+      await Dialog.alert({ title: "请先检测", message: "请先点“开始检测”，拿到账号 ID 后再部署。" })
+      return
+    }
+    if (!workerName.trim()) {
+      await Dialog.alert({
+        title: "还没选 Worker",
+        message: "请先点一个已检测到的 Worker（或手动填名称），再选文件部署。",
+      })
+      return
+    }
+    let picked: string[] | null = null
+    try {
+      picked = await DocumentPicker.pickFiles()
+    } catch (e) {
+      await Dialog.alert({ title: "选文件失败", message: String(e) })
+      return
+    }
+    if (!picked || picked.length === 0) return
+    const path = picked[0]
+    const lower = path.toLowerCase()
+    if (!lower.endsWith(".js") && !lower.endsWith(".mjs")) {
+      await Dialog.alert({
+        title: "不是 JS 文件",
+        message: "请选择 .js 或 .mjs 文件，你选的是：" + path.split("/").pop(),
+      })
+      return
+    }
+    let fileCode = ""
+    try {
+      fileCode = FileManager.readAsStringSync(path)
+    } catch (e) {
+      await Dialog.alert({ title: "读取文件失败", message: String(e) })
+      return
+    }
+    if (!fileCode.trim()) {
+      await Dialog.alert({ title: "文件是空的", message: "选中的文件没有代码。" })
+      return
+    }
+    setCode(fileCode)
+    setClipStatus(`已选文件：${path.split("/").pop()}（${fileCode.length} 字符）`)
+    await deploy(fileCode)
+  }
+
+  async function deploy(codeOverride?: string) {
     const t = token.trim()
     if (!t) {
       await Dialog.alert({ title: "缺少令牌", message: "请先输入并保存 API Token。" })
@@ -301,8 +352,9 @@ function App() {
       })
       return
     }
-    if (!code.trim()) {
-      await Dialog.alert({ title: "代码为空", message: "请先粘贴或编写 Worker 代码。" })
+    const useCode = (codeOverride ?? code).trim()
+    if (!useCode) {
+      await Dialog.alert({ title: "代码为空", message: "请先粘贴、编写或从文件选择 Worker 代码。" })
       return
     }
     if (mode === "create" && scriptNames.includes(name)) {
@@ -336,7 +388,7 @@ function App() {
           bindings: [],
         })
       )
-      const scriptData = Data.fromRawString(code)
+      const scriptData = Data.fromRawString(useCode)
       if (!scriptData) {
         pushDeploy("❌ 代码转码失败")
         return
@@ -486,8 +538,13 @@ function App() {
           </HStack>
           <Text font="caption">{`剪贴板：${clipStatus}`}</Text>
           <Button
+            title="从文件选择代码并部署"
+            action={pickFileAndDeploy}
+          />
+          <Text font="caption">点一下，从文件 App 里选一个 .js / .mjs，读出来直接部署到上面选好的 Worker。不用经过分享菜单。</Text>
+          <Button
             title={deploying ? "部署中…" : "部署 Worker"}
-            action={deploy}
+            action={() => deploy()}
           />
         </Section>
 

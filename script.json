@@ -1,1 +1,1 @@
-{"color":"orange","description":"Cloudflare Workers 检测与部署，默认覆盖已有脚本（单 Worker 授权最安全），支持分享 .js 文件一键部署","entry":"index.tsx","icon":"cloud.fill","name":"cf 的 wk","runInApp":false,"version":"3.0.0"}
+{"color": "orange", "description": "Cloudflare Workers 检测与部署，默认覆盖已有脚本（单 Worker 授权最安全），支持分享 .js 文件一键部署", "entry": "index.tsx", "icon": "cloud.fill", "name": "cf 的 wk", "runInApp": false, "version": "3.1.0"}
